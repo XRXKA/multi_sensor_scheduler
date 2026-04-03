@@ -48,6 +48,15 @@ struct SensorData {
     std::chrono::duration<double> latency;        // 数据处理延迟
     
     /**
+     * @brief 默认构造函数
+     * 
+     * 用于容器默认初始化，实际使用时应该使用带参数的构造函数
+     */
+    SensorData() : type(SensorType::CAMERA), sequence(0), payload_size(0), priority(0) {
+        timestamp = std::chrono::steady_clock::now();
+    }
+    
+    /**
      * @brief 构造函数
      * @param t 传感器类型
      * @param seq 序列号

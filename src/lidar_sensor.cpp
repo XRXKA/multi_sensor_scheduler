@@ -11,6 +11,7 @@
 #include "../include/logger.hpp"
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 /**
  * @class LidarSensor

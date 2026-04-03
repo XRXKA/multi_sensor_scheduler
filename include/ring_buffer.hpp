@@ -10,7 +10,7 @@
 #ifndef RING_BUFFER_HPP
 #define RING_BUFFER_HPP
 
-#include <vector>
+#include <deque>
 #include <mutex>
 #include <condition_variable>
 #include <optional>
@@ -89,9 +89,7 @@ public:
     void clear();
     
 private:
-    std::vector<SensorData> buffer;  // 数据存储容器
-    size_t head;                      // 头指针，指向下一个读取位置
-    size_t tail;                      // 尾指针，指向下一个写入位置
+    std::deque<SensorData> buffer;  // 数据存储容器
     size_t count;                     // 当前数据计数
     const size_t cap;                 // 缓冲区容量
     

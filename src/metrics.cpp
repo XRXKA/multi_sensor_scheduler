@@ -106,10 +106,11 @@ void Metrics::recordQueueSize(size_t size) {
  */
 double Metrics::getAverageLatency(SensorType type) const {
     std::lock_guard<std::mutex> lock(metricsMutex);  // 获取互斥锁
-    const auto& data = latencyData[type];  // 获取该类型的延迟数据
-    if (data.empty()) {
+    auto it = latencyData.find(type);  // 使用find方法查找
+    if (it == latencyData.end() || it->second.empty()) {
         return 0.0;  // 如果没有数据，返回0
     }
+    const auto& data = it->second;  // 获取该类型的延迟数据
     // 计算平均值
     double sum = 0.0;
     for (double lat : data) {
@@ -127,12 +128,15 @@ double Metrics::getAverageLatency(SensorType type) const {
  */
 double Metrics::getPacketLossRate(SensorType type) const {
     std::lock_guard<std::mutex> lock(metricsMutex);  // 获取互斥锁
-    size_t total = totalPackets[type];  // 获取总数据包数
-    if (total == 0) {
+    auto totalIt = totalPackets.find(type);  // 使用find方法查找总数据包数
+    auto lostIt = lostPackets.find(type);    // 使用find方法查找丢包数
+    if (totalIt == totalPackets.end() || totalIt->second == 0) {
         return 0.0;  // 如果没有数据包，返回0
     }
+    size_t total = totalIt->second;  // 获取总数据包数
+    size_t lost = (lostIt != lostPackets.end()) ? lostIt->second : 0;  // 获取丢包数
     // 计算丢包率
-    return static_cast<double>(lostPackets[type]) / total;
+    return static_cast<double>(lost) / total;
 }
 
 /**

@@ -110,7 +110,11 @@ std::string Logger::getTimestamp() const {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
     
     std::tm tm_now;
-    localtime_s(&tm_now, &time_t_now);  // 线程安全的本地时间转换
+    #ifdef _WIN32
+    localtime_s(&tm_now, &time_t_now);  // Windows平台的线程安全本地时间转换
+    #else
+    localtime_r(&time_t_now, &tm_now);  // Linux/Unix平台的线程安全本地时间转换
+    #endif
     
     std::stringstream ss;
     // 格式化时间：年-月-日 时:分:秒.毫秒

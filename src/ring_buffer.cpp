@@ -12,12 +12,11 @@
  * @param capacity 缓冲区容量
  * 
  * 初始化缓冲区：
- * - 分配指定容量的存储空间
- * - 初始化头尾指针为0
  * - 初始化数据计数为0
+ * - 设置缓冲区容量
  */
 RingBuffer::RingBuffer(size_t capacity)
-    : buffer(capacity), head(0), tail(0), count(0), cap(capacity) {}
+    : buffer(), count(0), cap(capacity) {}
 
 /**
  * @brief 向缓冲区写入数据
@@ -27,10 +26,9 @@ RingBuffer::RingBuffer(size_t capacity)
  * 实现细节：
  * 1. 获取互斥锁，保证线程安全
  * 2. 检查缓冲区是否已满
- * 3. 将数据写入tail位置
- * 4. 更新tail指针（循环递增）
- * 5. 增加数据计数
- * 6. 通知等待的读取线程
+ * 3. 将数据添加到缓冲区末尾
+ * 4. 增加数据计数
+ * 5. 通知等待的读取线程
  */
 bool RingBuffer::push(const SensorData& data) {
     std::unique_lock<std::mutex> lock(bufferMutex);  // 获取互斥锁
@@ -40,10 +38,8 @@ bool RingBuffer::push(const SensorData& data) {
         return false;  // 缓冲区已满，写入失败
     }
     
-    // 将数据写入tail位置
-    buffer[tail] = data;
-    // 更新tail指针，使用模运算实现循环
-    tail = (tail + 1) % cap;
+    // 将数据添加到缓冲区末尾
+    buffer.push_back(data);
     // 增加数据计数
     count++;
     
@@ -59,8 +55,8 @@ bool RingBuffer::push(const SensorData& data) {
  * 实现细节：
  * 1. 获取互斥锁，保证线程安全
  * 2. 等待缓冲区不为空（阻塞式）
- * 3. 从head位置读取数据
- * 4. 更新head指针（循环递增）
+ * 3. 从缓冲区前端读取数据
+ * 4. 从缓冲区中移除该数据
  * 5. 减少数据计数
  * 6. 通知等待的写入线程
  */
@@ -70,10 +66,10 @@ std::optional<SensorData> RingBuffer::pop() {
     // 等待缓冲区不为空，使用lambda表达式检查条件
     notEmpty.wait(lock, [this] { return !isEmpty(); });
     
-    // 从head位置读取数据
-    SensorData data = buffer[head];
-    // 更新head指针，使用模运算实现循环
-    head = (head + 1) % cap;
+    // 从缓冲区前端读取数据
+    SensorData data = buffer.front();
+    // 从缓冲区中移除该数据
+    buffer.pop_front();
     // 减少数据计数
     count--;
     
@@ -128,12 +124,11 @@ bool RingBuffer::isFull() const {
  * 
  * 实现细节：
  * 1. 获取互斥锁，保证线程安全
- * 2. 重置头尾指针为0
+ * 2. 清空缓冲区
  * 3. 重置数据计数为0
  */
 void RingBuffer::clear() {
     std::lock_guard<std::mutex> lock(bufferMutex);  // 获取互斥锁
-    head = 0;      // 重置头指针
-    tail = 0;      // 重置尾指针
-    count = 0;     // 重置数据计数
+    buffer.clear();  // 清空缓冲区
+    count = 0;       // 重置数据计数
 }
