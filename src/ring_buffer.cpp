@@ -16,7 +16,7 @@
  * - 设置缓冲区容量
  */
 RingBuffer::RingBuffer(size_t capacity)
-    : buffer(), count(0), cap(capacity) {}
+    : buffer(), count(0), cap(capacity), shutdownFlag(false) {}
 
 /**
  * @brief 向缓冲区写入数据
@@ -63,8 +63,13 @@ bool RingBuffer::push(const SensorData& data) {
 std::optional<SensorData> RingBuffer::pop() {
     std::unique_lock<std::mutex> lock(bufferMutex);  // 获取互斥锁
     
-    // 等待缓冲区不为空，使用lambda表达式检查条件
-    notEmpty.wait(lock, [this] { return !isEmpty(); });
+    // 等待缓冲区不为空或关闭标志为true，使用lambda表达式检查条件
+    notEmpty.wait(lock, [this] { return !isEmpty() || shutdownFlag; });
+    
+    // 如果关闭标志为true且缓冲区为空，返回nullopt
+    if (shutdownFlag && isEmpty()) {
+        return std::nullopt;
+    }
     
     // 从缓冲区前端读取数据
     SensorData data = buffer.front();
@@ -131,4 +136,15 @@ void RingBuffer::clear() {
     std::lock_guard<std::mutex> lock(bufferMutex);  // 获取互斥锁
     buffer.clear();  // 清空缓冲区
     count = 0;       // 重置数据计数
+}
+
+/**
+ * @brief 关闭缓冲区
+ * 
+ * 设置关闭标志并通知所有等待的线程
+ */
+void RingBuffer::shutdown() {
+    std::lock_guard<std::mutex> lock(bufferMutex);  // 获取互斥锁
+    shutdownFlag = true;  // 设置关闭标志
+    notEmpty.notify_all();  // 通知所有等待的线程
 }

@@ -88,10 +88,18 @@ public:
      */
     void clear();
     
+    /**
+     * @brief 关闭缓冲区
+     * 
+     * 通知所有阻塞在pop()操作上的线程退出
+     */
+    void shutdown();
+    
 private:
     std::deque<SensorData> buffer;  // 数据存储容器
     size_t count;                     // 当前数据计数
     const size_t cap;                 // 缓冲区容量
+    bool shutdownFlag;                // 关闭标志
     
     mutable std::mutex bufferMutex;              // 互斥锁，保证线程安全
     std::condition_variable notEmpty;            // 条件变量，缓冲区非空通知

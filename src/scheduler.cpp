@@ -50,6 +50,7 @@ void Scheduler::start() {
  */
 void Scheduler::stop() {
     running = false;  // 清除运行标志
+    buffer.shutdown();  // 关闭缓冲区，通知所有阻塞的线程
     if (processingThread.joinable()) {
         processingThread.join();  // 等待线程结束
     }
@@ -80,6 +81,9 @@ bool Scheduler::addSensorData(const SensorData& data) {
  */
 void Scheduler::processData() {
     while (running) {
+        // 记录CPU使用率
+        Metrics::getInstance().recordCPUUsage();
+        
         // 从环形缓冲区读取数据（阻塞式）
         auto dataOpt = buffer.pop();
         if (!dataOpt) {
@@ -142,7 +146,10 @@ void Scheduler::processData() {
             // 处理数据（这里只是模拟处理）
             LOG_DEBUG("Processing " + prioritizedData.typeToString() + " data, sequence: " + std::to_string(prioritizedData.sequence) + ", latency: " + std::to_string(prioritizedData.latency.count() * 1000) + "ms, priority: " + std::to_string(prioritizedData.priority));
             
-            // 模拟处理时间：休眠100微秒
+            // 记录成功处理的数据包
+            Metrics::getInstance().recordProcessedPacket(prioritizedData.type);
+            
+            // 模拟处理时间
             std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
     }
